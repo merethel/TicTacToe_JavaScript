@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>
+            "Tic Tac Toe Object-Oriented Programming"
+        </title>
+        <style>
+            *, *::after, *::before {
+                box-sizing: border-box;
+                font-family: 'Itim', cursive;
+                text-align: center;
+            }
+            
+
+            h1{
+                margin-top: 10vh;
+            }
+
+            :root {
+                --cell-size: 100px; /*variabel som kan bruges flere steder*/
+                --mark-size: calc(var(--cell-size) * .9); /*Størrelse på X og O, som er 90% størrelsen af cellerne*/
+            }
+
+
+            body {
+                margin: 0;
+            }
+
+            .board {
+                width: 100vw;
+                height: 50vh;
+                display: grid;
+                justify-content: center; /*centrer celler*/
+                align-content: center; /*centrer celler*/
+                justify-items: center; /*centrer X og O inde i celler*/
+                align-items: center; /*centrer X og O inde i celler*/
+                grid-template-columns: repeat(3, auto); /* sørger for at lave 3 kolonner, som .cell elementer placeres i */
+            }
+
+            .cell {
+                width: var(--cell-size);
+                height: var(--cell-size);
+                border: solid black;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                position: relative; /*sørger for at x og o kan placeres med position absolute*/
+                cursor: pointer;
+            }
+
+            .cell.x,
+            .cell.circle{
+                cursor: not-allowed;
+            }
+
+            
+            .cell.x::before,
+            .cell.x::after{
+                background-color: black;
+            }
+        
+
+            .cell.x::before,
+            .cell.x::after,
+            .cell.circle::before {
+                background-color: black;
+            }
+            
+            .board.x .cell:not(.x):not(.circle):hover::before,
+            .board.x .cell:not(.x):not(.circle):hover::after,
+            .board.circle .cell:not(.x):not(.circle):hover::before {
+                background-color: lightgrey;
+            }
+
+            .cell.x::before,
+            .cell.x::after,
+            .board.x .cell:not(.x):not(.circle):hover::before,/*Not = Tilføjer kun hover effekt, når man ikke er på .x eller .circle elementer*/
+            .board.x .cell:not(.x):not(.circle):hover::after {
+                content: '';
+                position: absolute;
+                width: calc(var(--mark-size) * .15);
+                height: var(--mark-size);
+            }
+
+            .cell.x::before,
+            .board.x .cell:not(.x):not(.circle):hover::before {
+                transform: rotate(45deg);
+            }
+
+            .cell.x::after,
+            .board.x .cell:not(.x):not(.circle):hover::after {
+                transform: rotate(-45deg);
+            }
+
+            .cell.circle::before,
+            .cell.circle::after,
+            .board.circle .cell:not(.x):not(.circle):hover::before,
+            .board.circle .cell:not(.x):not(.circle):hover::after {
+                content: '';
+                position: absolute;
+                border-radius: 50%;
+            }
+
+            .cell.circle::before,
+            .board.circle .cell:not(.x):not(.circle):hover::before {
+                width: var(--mark-size);
+                height: var(--mark-size);
+            }
+
+            .cell.circle::after,
+            .board.circle .cell:not(.x):not(.circle):hover::after {
+                width: calc(var(--mark-size) * .7);
+                height: calc(var(--mark-size) * .7);
+                background-color: white;
+            }
+
+            .winning-message{
+                display: none;
+                position: fixed;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                background-color: rgba(0, 0, 0, .9);
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                color: white;
+                font-size: 5rem;
+            }
+            .winning-message button{
+                font-size: 3rem;
+                background-color: white;
+                border: solid black;
+                padding: .25em, .5em;
+                cursor: pointer;
+            }
+
+            .winning-message button:hover{
+                background-color: black;
+                border-color: white;
+                color: white;
+            }
+
+            .winning-message.show{
+                display: flex;
+            }
+
+            .playerX{
+                color: rgb(137, 43, 226);
+            }
+
+            .playerCircle{
+                color: blue;
+            }
+
+
+        </style>
+    </head>
+
+    <body>
+        <h1>Tic Tac Toe</h1>
+        <div class="board" id="board">
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+        </div>
+        <div class="winning-message" id="winningMessage">
+            <div data-winning-message-text></div>
+            <button id="restartButton">Restart</button>
+        </div>
+        <div class="display">
+            Player <span id="display-player"></span>'s turn
+        </div>
+
+        <script>
+
+            class Game {
+                constructor() {
+                    this.X_CLASS = 'x'
+                    this.CIRCLE_CLASS = 'circle'
+                    this.WINNING_COMBINATIONS = [
+                        [0, 1, 2],
+                        [3, 4, 5],
+                        [6, 7, 8],
+                        [0, 3, 6],
+                        [1, 4, 7],
+                        [2, 5, 8],
+                        [0, 4, 8],
+                        [2, 4, 6]
+                    ]
+                    this.circleTurn = false
+
+                    this.winningMessageTextElement = document.querySelector('[data-winning-message-text]')
+                    this.restartButton = document.getElementById('restartButton')
+                    this.classTurn = document.getElementById('display-player')
+                    this.cellElements = document.querySelectorAll('[data-cell]')
+                    this.board = document.getElementById('board')
+                    this.winningMessageElement = document.getElementById('winningMessage')
+                    this.restartButton.addEventListener('click', () => this.startGame())
+                }
+
+                startGame(){
+                    this.circleTurn = false //x starter altid
+                    this.classTurn.innerText = 'X'
+                    this.classTurn.classList.add('playerX')
+                    this.cellElements.forEach(cell => {
+                        cell.classList.remove(this.X_CLASS)
+                        cell.classList.remove(this.CIRCLE_CLASS)
+                        cell.removeEventListener('click', () => this.handleClick()) //"Resetter" hver felt
+                        cell.addEventListener('click', () => this.handleClick(event), {once: true}) /*once true gør at man kun kan fire eventet 1 gang, så når først man har klikket på en celle, kan man ikke klikke på den igen*/
+                    })
+                    this.setBoardHoverClass()
+                    this.winningMessageElement.classList.remove('show')
+                }
+
+                handleClick(event){
+                    const cell = event.target
+                    const currentPlayer = this.circleTurn ? this.CIRCLE_CLASS : this.X_CLASS //hvis true, så er currentplayer circle_class, og hvis false, er det x_class
+
+                    //Placer tegn
+                    this.placeMark(cell, currentPlayer)
+
+                    //check om vundet, uafgjort og skifter spiller hvis ikke
+                    if(this.checkWin(currentPlayer)){
+                        this.endGame(false) //false sender videre hvem der har vundet - altså false at spillet er uafgjort
+                    } else if(this.isDraw()){
+                        this.endGame(true) //true sender videre at spillet er uafgjort - altså true at spillet er uafgjort
+                    } else { //hvis spillet ikke er slut, skifter man spiller og tilføjer hover
+                        console.log(this.circleTurn)
+                        this.swapTurns()
+                        this.setBoardHoverClass()
+                    }
+                }
+
+                isDraw(){
+                    return [...this.cellElements].every(cell => { //cellElements rykkes ind i et array, for at man kan bruge .every() metoden
+                        return cell.classList.contains(this.X_CLASS) || cell.classList.contains(this.CIRCLE_CLASS) //Tjekker om alle celler har enten en x-klasse eller circle-klasse, så vil vi returnere true, da alle felter er fyldte
+                    })
+                }
+
+                placeMark(cell, currentPlayer){
+                    cell.classList.add(currentPlayer)
+                }
+
+                swapTurns(){
+                    this.circleTurn = !this.circleTurn //ændrer circleTurn true/false hver gang der klikkes
+                    if(this.circleTurn){
+                        this.classTurn.innerText = 'O'
+                        this.classTurn.classList.remove('playerX')
+                        this.classTurn.classList.add('playerCircle')
+                    } else{
+                        this.classTurn.innerText = 'X'
+                        this.classTurn.classList.remove('playerCircle')
+                        this.classTurn.classList.add('playerX')
+                    }
+                }
+
+                setBoardHoverClass(){
+                    this.board.classList.remove(this.X_CLASS) //fjerner begge klasser til at starte med
+                    this.board.classList.remove(this.CIRCLE_CLASS) //fjerner begge klasser til at starte med
+                    if(this.circleTurn){ //tjekker hvis tur det er
+                        this.board.classList.add(this.CIRCLE_CLASS) //tilføjer circle hvis true
+                    } else {
+                        this.board.classList.add(this.X_CLASS) //Ellers så tilføjer vi x
+                    }
+                }
+
+                checkWin(currentPlayer){
+                    return this.WINNING_COMBINATIONS.some(combination => { //Tjekker om nogen af winning-conditions er opfyldt, og looper gennem alle kombinationer (returnerer true/false)
+                        return combination.every(index => { //For hver af kombinationerne, så vil vi tjekke om alle cellerne i den kombination (index i arrayet) har samme tegn
+                            return this.cellElements[index].classList.contains(currentPlayer) //Returnerer om alle tre celler har samme tegn
+                        }) 
+                    })
+                }
+
+                endGame(draw){
+                    if(draw) {
+                        this.winningMessageTextElement.innerText = `It's a draw!`
+                    } else {
+                        this.winningMessageTextElement.innerText = `${this.circleTurn ? this.winningMessageElement.classList.add('playerCircle') : this.winningMessageElement.classList.add('playerX')}`
+                        this.winningMessageTextElement.innerText = `${this.circleTurn ? "O's Win!" : "X's Win!"}`
+                    }
+                    this.winningMessageElement.classList.add('show')
+                }
+            }
+
+            const game = new Game()
+            game.startGame()
+
+        </script>
+    </body>
+</html>
+
